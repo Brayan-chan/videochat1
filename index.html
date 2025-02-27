@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Video Chat</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.8.1/flowbite.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #5D5CDE;
+            --text-light: #333333;
+            --text-dark: #f0f0f0;
+            --bg-light: #FFFFFF;
+            --bg-dark: #181818;
+            --card-light: #f5f5f5;
+            --card-dark: #222222;
+            --border-light: #e0e0e0;
+            --border-dark: #444444;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .dark-mode {
+                --text-color: var(--text-dark);
+                --bg-color: var(--bg-dark);
+                --card-bg: var(--card-dark);
+                --border-color: var(--border-dark);
+            }
+        }
+        
+        @media (prefers-color-scheme: light) {
+            .light-mode {
+                --text-color: var(--text-light);
+                --bg-color: var(--bg-light);
+                --card-bg: var(--card-light);
+                --border-color: var(--border-light);
+            }
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            transition: all 0.3s ease;
+        }
+        
+        .video-container {
+            aspect-ratio: 16/9;
+            background-color: #000000;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .remote-video {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .local-video-container {
+            position: absolute;
+            width: 25%;
+            right: 1rem;
+            bottom: 1rem;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            aspect-ratio: 4/3;
+            z-index: 10;
+        }
+        
+        .local-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: #4a49b7;
+        }
+        
+        .btn-secondary {
+            background-color: #dc2626;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #b91c1c;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .status-disconnected {
+            background-color: #dc2626;
+        }
+        
+        .status-connected {
+            background-color: #16a34a;
+        }
+        
+        .status-connecting {
+            background-color: #ca8a04;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0% { opacity: 0.2; }
+            50% { opacity: 1; }
+            100% { opacity: 0.2; }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .flex-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #step1, #step2, #step3 {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="dark-mode light-mode min-h-screen p-4">
+    <div class="container mx-auto max-w-4xl">
+        <h1 class="text-2xl md:text-3xl font-bold text-center mb-6">WebRTC Video Chat</h1>
+        
+        <div id="step1" class="card mb-6">
+            <h2 class="text-xl font-semibold mb-4">Paso 1: Configurar tu conexión</h2>
+            <div class="mb-4">
+                <label for="username" class="block mb-2 text-sm font-medium">Tu nombre de usuario</label>
+                <input type="text" id="username" class="bg-gray-50 border border-gray-300 text-gray-900 text-base rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Ingresa un nombre único" required>
+            </div>
+            <button id="generateBtn" class="btn-primary px-5 py-2.5 rounded-lg text-center mr-2">
+                Generar ID
+            </button>
+            
+            <div id="myIdContainer" class="mt-4 hidden">
+                <p class="text-sm mb-2">Tu ID de conexión (comparte este ID con quien quieras llamar):</p>
+                <div class="flex">
+                    <input type="text" id="peerId" class="bg-gray-50 border border-gray-300 text-gray-900 text-base rounded-lg rounded-r-none focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" readonly>
+                    <button id="copyBtn" class="btn-primary px-3 py-2.5 rounded-r-lg text-center">
+                        Copiar
+                    </button>
+                </div>
+                <div class="mt-4 flex items-center">
+                    <span class="status-indicator status-disconnected" id="connectionStatus"></span>
+                    <span id="connectionText">Desconectado</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="step2" class="card mb-6 hidden">
+            <h2 class="text-xl font-semibold mb-4">Paso 2: Conectar con otro usuario</h2>
+            <div class="mb-4">
+                <label for="remotePeerId" class="block mb-2 text-sm font-medium">ID del otro usuario</label>
+                <input type="text" id="remotePeerId" class="bg-gray-50 border border-gray-300 text-gray-900 text-base rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Pega el ID del otro usuario">
+            </div>
+            <button id="connectBtn" class="btn-primary px-5 py-2.5 rounded-lg text-center">
+                Conectar
+            </button>
+        </div>
+        
+        <div id="step3" class="hidden">
+            <div class="card mb-6">
+                <h2 class="text-xl font-semibold mb-4">Video Chat</h2>
+                <div class="video-container">
+                    <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
+                    <div class="local-video-container">
+                        <video id="localVideo" class="local-video" autoplay playsinline muted></video>
+                    </div>
+                </div>
+                <div class="flex justify-center space-x-4 mt-4">
+                    <button id="toggleAudioBtn" class="px-5 py-2.5 rounded-lg text-center btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                        <span class="ml-2">Silenciar</span>
+                    </button>
+                    <button id="toggleVideoBtn" class="px-5 py-2.5 rounded-lg text-center btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span class="ml-2">Apagar cámara</span>
+                    </button>
+                    <button id="hangupBtn" class="px-5 py-2.5 rounded-lg text-center btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
+                        </svg>
+                        <span class="ml-2">Colgar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="errorContainer" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mt-4 mb-4" role="alert">
+            <strong class="font-bold">Error: </strong>
+            <span id="errorMessage"></span>
+        </div>
+    </div>
+
+    <script>
+        // Check if the browser supports WebRTC
+        function checkWebRTCSupport() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showError('Tu navegador no soporta WebRTC. Por favor, actualiza tu navegador o prueba con otro como Chrome, Firefox o Edge.');
+                return false;
+            }
+            return true;
+        }
+        
+        // DOM Elements
+        const generateBtn = document.getElementById('generateBtn');
+        const connectBtn = document.getElementById('connectBtn');
+        const hangupBtn = document.getElementById('hangupBtn');
+        const toggleAudioBtn = document.getElementById('toggleAudioBtn');
+        const toggleVideoBtn = document.getElementById('toggleVideoBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const username = document.getElementById('username');
+        const peerId = document.getElementById('peerId');
+        const remotePeerId = document.getElementById('remotePeerId');
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const myIdContainer = document.getElementById('myIdContainer');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const connectionText = document.getElementById('connectionText');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // Variables for WebRTC connections
+        let peer;
+        let localStream;
+        let currentCall;
+        let audioEnabled = true;
+        let videoEnabled = true;
+        
+        // Show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorContainer.classList.remove('hidden');
+            setTimeout(() => {
+                errorContainer.classList.add('hidden');
+            }, 5000);
+        }
+        
+        // Update connection status
+        function updateConnectionStatus(status) {
+            connectionStatus.classList.remove('status-disconnected', 'status-connected', 'status-connecting');
+            
+            switch (status) {
+                case 'disconnected':
+                    connectionStatus.classList.add('status-disconnected');
+                    connectionText.textContent = 'Desconectado';
+                    break;
+                case 'connected':
+                    connectionStatus.classList.add('status-connected');
+                    connectionText.textContent = 'Conectado';
+                    break;
+                case 'connecting':
+                    connectionStatus.classList.add('status-connecting');
+                    connectionText.textContent = 'Conectando...';
+                    break;
+            }
+        }
+        
+        // Initialize PeerJS connection
+        function initializePeer(userId) {
+            // Create a random id if username is empty
+            if (!userId) {
+                userId = 'user-' + Math.random().toString(36).substr(2, 9);
+            }
+            
+            // Initialize with a random server from PeerJS free servers
+            peer = new Peer(userId, {
+                debug: 3,
+                config: {
+                    'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' }
+                    ]
+                }
+            });
+            
+            peer.on('open', (id) => {
+                peerId.value = id;
+                myIdContainer.classList.remove('hidden');
+                step2.classList.remove('hidden');
+                updateConnectionStatus('disconnected');
+            });
+            
+            peer.on('error', (err) => {
+                console.error('Peer error:', err);
+                let errorMsg = 'Error de conexión: ';
+                
+                switch(err.type) {
+                    case 'peer-unavailable':
+                        errorMsg += 'El usuario no está disponible o el ID es incorrecto.';
+                        break;
+                    case 'network':
+                        errorMsg += 'Problema de red. Verifica tu conexión a internet.';
+                        break;
+                    case 'browser-incompatible':
+                        errorMsg += 'Tu navegador no es compatible con WebRTC.';
+                        break;
+                    case 'invalid-id':
+                        errorMsg += 'El ID de usuario no es válido.';
+                        break;
+                    case 'unavailable-id':
+                        errorMsg += 'Este ID de usuario ya está en uso.';
+                        break;
+                    default:
+                        errorMsg += err.message || 'Ha ocurrido un error desconocido.';
+                }
+                
+                showError(errorMsg);
+                updateConnectionStatus('disconnected');
+            });
+            
+            peer.on('call', (call) => {
+                updateConnectionStatus('connecting');
+                
+                if (!localStream) {
+                    showError('No se pudo acceder a tu cámara y micrófono. Por favor, verifica los permisos.');
+                    call.close();
+                    return;
+                }
+                
+                call.answer(localStream);
+                setupCallEvents(call);
+            });
+        }
+        
+        // Setup media stream
+        async function setupMediaStream() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: true,
+                    video: true
+                });
+                
+                localVideo.srcObject = localStream;
+                
+                return true;
+            } catch (err) {
+                console.error('Error accessing media devices:', err);
+                showError('No se pudo acceder a tu cámara y micrófono. Por favor, verifica los permisos.');
+                return false;
+            }
+        }
+        
+        // Set up call events
+        function setupCallEvents(call) {
+            currentCall = call;
+            
+            call.on('stream', (stream) => {
+                remoteVideo.srcObject = stream;
+                step3.classList.remove('hidden');
+                step1.classList.add('hidden');
+                step2.classList.add('hidden');
+                updateConnectionStatus('connected');
+            });
+            
+            call.on('close', () => {
+                endCall();
+            });
+            
+            call.on('error', (err) => {
+                console.error('Call error:', err);
+                showError('Error en la llamada: ' + err.message);
+                endCall();
+            });
+        }
+        
+        // End current call and reset UI
+        function endCall() {
+            if (currentCall) {
+                currentCall.close();
+                currentCall = null;
+            }
+            
+            remoteVideo.srcObject = null;
+            step3.classList.add('hidden');
+            step1.classList.remove('hidden');
+            step2.classList.remove('hidden');
+            updateConnectionStatus('disconnected');
+        }
+        
+        // Toggle audio
+        function toggleAudio() {
+            if (localStream) {
+                audioEnabled = !audioEnabled;
+                localStream.getAudioTracks().forEach(track => {
+                    track.enabled = audioEnabled;
+                });
+                
+                if (audioEnabled) {
+                    toggleAudioBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                        <span class="ml-2">Silenciar</span>
+                    `;
+                } else {
+                    toggleAudioBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                        </svg>
+                        <span class="ml-2">Activar micrófono</span>
+                    `;
+                }
+            }
+        }
+        
+        // Toggle video
+        function toggleVideo() {
+            if (localStream) {
+                videoEnabled = !videoEnabled;
+                localStream.getVideoTracks().forEach(track => {
+                    track.enabled = videoEnabled;
+                });
+                
+                if (videoEnabled) {
+                    toggleVideoBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span class="ml-2">Apagar cámara</span>
+                    `;
+                } else {
+                    toggleVideoBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                        </svg>
+                        <span class="ml-2">Activar cámara</span>
+                    `;
+                }
+            }
+        }
+        
+        // Event Listeners
+        generateBtn.addEventListener('click', async () => {
+            if (!checkWebRTCSupport()) return;
+            
+            const hasMedia = await setupMediaStream();
+            if (hasMedia) {
+                initializePeer(username.value.trim());
+            }
+        });
+        
+        connectBtn.addEventListener('click', () => {
+            const remoteId = remotePeerId.value.trim();
+            
+            if (!remoteId) {
+                showError('Por favor, ingresa el ID del otro usuario.');
+                return;
+            }
+            
+            if (!localStream) {
+                showError('No se pudo acceder a tu cámara y micrófono. Por favor, genera tu ID primero.');
+                return;
+            }
+            
+            updateConnectionStatus('connecting');
+            
+            const call = peer.call(remoteId, localStream);
+            setupCallEvents(call);
+        });
+        
+        hangupBtn.addEventListener('click', endCall);
+        toggleAudioBtn.addEventListener('click', toggleAudio);
+        toggleVideoBtn.addEventListener('click', toggleVideo);
+        
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(peerId.value)
+                .then(() => {
+                    copyBtn.textContent = 'Copiado!';
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copiar';
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('No se pudo copiar al portapapeles:', err);
+                });
+        });
+        
+        // Check WebRTC support on page load
+        window.addEventListener('load', checkWebRTCSupport);
+    </script>
+</body>
+</html>

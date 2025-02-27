@@ -160,7 +160,7 @@
             align-items: center;
         }
         
-        #step1, #step2, #step3 {
+        #step1, #step2, #step3, #audioTestPanel {
             transition: all 0.3s ease;
         }
         
@@ -335,6 +335,161 @@
             overflow: hidden;
         }
         
+        /* Audio test meter */
+        .audio-test-container {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .audio-meter {
+            width: 100%;
+            height: 2rem;
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 0.25rem;
+            overflow: hidden;
+            margin: 1rem 0;
+            position: relative;
+        }
+        
+        .audio-meter-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #16a34a 0%, #ca8a04 60%, #dc2626 90%);
+            border-radius: 0.25rem;
+            transition: width 0.1s ease;
+        }
+        
+        .audio-meter-tick {
+            position: absolute;
+            height: 100%;
+            width: 1px;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+        
+        .audio-test-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .audio-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .audio-active {
+            background-color: #16a34a;
+        }
+        
+        .audio-inactive {
+            background-color: #dc2626;
+        }
+        
+        .test-video-container {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background-color: #000;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        .test-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Media status indicators */
+        .media-status {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .media-status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .media-status-indicator {
+            width: 0.625rem;
+            height: 0.625rem;
+            border-radius: 50%;
+        }
+        
+        .media-status-active {
+            background-color: #16a34a;
+        }
+        
+        .media-status-inactive {
+            background-color: #dc2626;
+        }
+        
+        .media-status-pending {
+            background-color: #ca8a04;
+            animation: blink 1s infinite;
+        }
+        
+        /* Connection debug panel */
+        .debug-panel {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: rgba(0, 0, 0, 0.05);
+            font-size: 0.875rem;
+        }
+        
+        .debug-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .debug-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .debug-content.open {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .debug-log {
+            margin: 0.25rem 0;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .debug-log-error {
+            color: #dc2626;
+        }
+        
+        .debug-log-warning {
+            color: #ca8a04;
+        }
+        
+        .debug-log-info {
+            color: #2563eb;
+        }
+        
+        .debug-log-success {
+            color: #16a34a;
+        }
+        
         /* Mobile responsiveness */
         @media (max-width: 640px) {
             .video-controls {
@@ -365,19 +520,68 @@
             <button id="generateBtn" class="btn-primary px-5 py-2.5 rounded-lg text-center mr-2">
                 Generar ID
             </button>
+        </div>
+        
+        <div id="audioTestPanel" class="card mb-6 hidden">
+            <h2 class="text-xl font-semibold mb-4">Prueba de audio y video</h2>
             
-            <div id="myIdContainer" class="mt-4 hidden">
-                <p class="text-sm mb-2">Tu ID de conexión (comparte este ID con quien quieras llamar):</p>
-                <div class="flex">
-                    <input type="text" id="peerId" class="bg-gray-50 border border-gray-300 text-gray-900 text-base rounded-lg rounded-r-none focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" readonly>
-                    <button id="copyBtn" class="btn-primary px-3 py-2.5 rounded-r-lg text-center">
-                        Copiar
+            <div class="test-video-container">
+                <video id="testVideo" class="test-video" autoplay playsinline muted></video>
+            </div>
+            
+            <div class="media-status">
+                <div class="media-status-item">
+                    <div class="media-status-indicator media-status-pending" id="camStatus"></div>
+                    <span>Cámara</span>
+                </div>
+                <div class="media-status-item">
+                    <div class="media-status-indicator media-status-pending" id="micStatus"></div>
+                    <span>Micrófono</span>
+                </div>
+            </div>
+            
+            <div class="audio-test-container">
+                <div class="audio-test-status">
+                    <div>
+                        <span class="audio-indicator audio-inactive" id="audioIndicator"></span>
+                        <span id="audioStatusText">Sin audio detectado</span>
+                    </div>
+                    <span id="audioLevel">0%</span>
+                </div>
+                
+                <div class="audio-meter">
+                    <div class="audio-meter-fill" id="audioMeterFill"></div>
+                    <div class="audio-meter-tick" style="left: 30%"></div>
+                    <div class="audio-meter-tick" style="left: 60%"></div>
+                    <div class="audio-meter-tick" style="left: 90%"></div>
+                </div>
+                
+                <p class="text-sm mt-2 mb-4">Habla por tu micrófono para comprobar que funciona correctamente. La barra debe moverse al detectar tu voz.</p>
+                
+                <div class="flex space-x-2">
+                    <button id="testAudioBtn" class="btn-primary px-5 py-2.5 rounded-lg text-center">
+                        <i class="fas fa-volume-up mr-2"></i>
+                        Probar audio
+                    </button>
+                    <button id="continueBtn" class="btn-primary px-5 py-2.5 rounded-lg text-center">
+                        Continuar
                     </button>
                 </div>
-                <div class="mt-4 flex items-center">
-                    <span class="status-indicator status-disconnected" id="connectionStatus"></span>
-                    <span id="connectionText">Desconectado</span>
-                </div>
+            </div>
+        </div>
+        
+        <div id="myIdContainer" class="card mb-6 hidden">
+            <h2 class="text-xl font-semibold mb-4">Tu ID de conexión</h2>
+            <p class="text-sm mb-2">Comparte este ID con quien quieras llamar:</p>
+            <div class="flex">
+                <input type="text" id="peerId" class="bg-gray-50 border border-gray-300 text-gray-900 text-base rounded-lg rounded-r-none focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" readonly>
+                <button id="copyBtn" class="btn-primary px-3 py-2.5 rounded-r-lg text-center">
+                    Copiar
+                </button>
+            </div>
+            <div class="mt-4 flex items-center">
+                <span class="status-indicator status-disconnected" id="connectionStatus"></span>
+                <span id="connectionText">Desconectado</span>
             </div>
         </div>
         
@@ -434,6 +638,24 @@
                         </div>
                     </div>
                 </div>
+                <div class="media-status my-2">
+                    <div class="media-status-item" id="localAudioStatus">
+                        <div class="media-status-indicator media-status-pending"></div>
+                        <span>Mi audio</span>
+                    </div>
+                    <div class="media-status-item" id="localVideoStatus">
+                        <div class="media-status-indicator media-status-pending"></div>
+                        <span>Mi video</span>
+                    </div>
+                    <div class="media-status-item" id="remoteAudioStatus">
+                        <div class="media-status-indicator media-status-pending"></div>
+                        <span>Audio remoto</span>
+                    </div>
+                    <div class="media-status-item" id="remoteVideoStatus">
+                        <div class="media-status-indicator media-status-pending"></div>
+                        <span>Video remoto</span>
+                    </div>
+                </div>
                 <div class="flex justify-center space-x-4 mt-4 video-controls">
                     <button id="toggleAudioBtn" class="px-5 py-2.5 rounded-lg text-center btn-primary">
                         <i class="fas fa-microphone"></i>
@@ -443,10 +665,25 @@
                         <i class="fas fa-video"></i>
                         <span class="ml-2">Apagar cámara</span>
                     </button>
+                    <button id="reconnectBtn" class="px-5 py-2.5 rounded-lg text-center btn-primary">
+                        <i class="fas fa-sync"></i>
+                        <span class="ml-2">Reconectar</span>
+                    </button>
                     <button id="hangupBtn" class="px-5 py-2.5 rounded-lg text-center btn-secondary">
                         <i class="fas fa-phone-slash"></i>
                         <span class="ml-2">Colgar</span>
                     </button>
+                </div>
+                
+                <!-- Debug panel -->
+                <div class="debug-panel">
+                    <div class="debug-title">
+                        <span>Diagnóstico de conexión</span>
+                        <button id="toggleDebugBtn" class="text-sm text-blue-600 hover:underline">Mostrar</button>
+                    </div>
+                    <div id="debugContent" class="debug-content">
+                        <div id="debugLogs"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -471,22 +708,40 @@
         const generateBtn = document.getElementById('generateBtn');
         const connectBtn = document.getElementById('connectBtn');
         const hangupBtn = document.getElementById('hangupBtn');
+        const reconnectBtn = document.getElementById('reconnectBtn');
         const toggleAudioBtn = document.getElementById('toggleAudioBtn');
         const toggleVideoBtn = document.getElementById('toggleVideoBtn');
         const copyBtn = document.getElementById('copyBtn');
+        const testAudioBtn = document.getElementById('testAudioBtn');
+        const continueBtn = document.getElementById('continueBtn');
+        const toggleDebugBtn = document.getElementById('toggleDebugBtn');
         const username = document.getElementById('username');
         const peerId = document.getElementById('peerId');
         const remotePeerId = document.getElementById('remotePeerId');
         const localVideo = document.getElementById('localVideo');
         const remoteVideo = document.getElementById('remoteVideo');
+        const testVideo = document.getElementById('testVideo');
         const step1 = document.getElementById('step1');
         const step2 = document.getElementById('step2');
         const step3 = document.getElementById('step3');
+        const audioTestPanel = document.getElementById('audioTestPanel');
         const myIdContainer = document.getElementById('myIdContainer');
         const connectionStatus = document.getElementById('connectionStatus');
         const connectionText = document.getElementById('connectionText');
         const errorContainer = document.getElementById('errorContainer');
         const errorMessage = document.getElementById('errorMessage');
+        const audioMeterFill = document.getElementById('audioMeterFill');
+        const audioIndicator = document.getElementById('audioIndicator');
+        const audioStatusText = document.getElementById('audioStatusText');
+        const audioLevel = document.getElementById('audioLevel');
+        const camStatus = document.getElementById('camStatus');
+        const micStatus = document.getElementById('micStatus');
+        const debugContent = document.getElementById('debugContent');
+        const debugLogs = document.getElementById('debugLogs');
+        const localAudioStatus = document.getElementById('localAudioStatus').querySelector('.media-status-indicator');
+        const localVideoStatus = document.getElementById('localVideoStatus').querySelector('.media-status-indicator');
+        const remoteAudioStatus = document.getElementById('remoteAudioStatus').querySelector('.media-status-indicator');
+        const remoteVideoStatus = document.getElementById('remoteVideoStatus').querySelector('.media-status-indicator');
         
         // Chat and Reactions DOM Elements
         const toggleChatBtn = document.getElementById('toggleChatBtn');
@@ -505,11 +760,41 @@
         let audioEnabled = true;
         let videoEnabled = true;
         let localUserName = '';
+        let remote_id = '';
+        let connectionRetries = 0;
+        let maxRetries = 3;
+        
+        // Audio analysis variables
+        let audioContext;
+        let analyser;
+        let microphone;
+        let testAudioStream;
+        let audioTestInterval;
+        let audioTestActive = false;
+        
+        // Test audio playback
+        let testAudio = new Audio('https://cdn.jsdelivr.net/gh/anars/blank-audio/250-milliseconds-of-silence.mp3');
+        testAudio.loop = true;
+        
+        // Logger for debug information
+        function addDebugLog(message, type = 'info') {
+            const logElement = document.createElement('div');
+            logElement.classList.add('debug-log', `debug-log-${type}`);
+            logElement.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            debugLogs.appendChild(logElement);
+            
+            // Scroll to bottom
+            debugLogs.scrollTop = debugLogs.scrollHeight;
+            
+            // Also log to console
+            console.log(`${type.toUpperCase()}: ${message}`);
+        }
         
         // Show error message
         function showError(message) {
             errorMessage.textContent = message;
             errorContainer.classList.remove('hidden');
+            addDebugLog(message, 'error');
             setTimeout(() => {
                 errorContainer.classList.add('hidden');
             }, 5000);
@@ -533,6 +818,165 @@
                     connectionText.textContent = 'Conectando...';
                     break;
             }
+            
+            addDebugLog(`Estado de conexión: ${status}`);
+        }
+        
+        // Update media status indicators
+        function updateMediaStatus(type, status) {
+            let indicator;
+            
+            switch (type) {
+                case 'localAudio':
+                    indicator = localAudioStatus;
+                    break;
+                case 'localVideo':
+                    indicator = localVideoStatus;
+                    break;
+                case 'remoteAudio':
+                    indicator = remoteAudioStatus;
+                    break;
+                case 'remoteVideo':
+                    indicator = remoteVideoStatus;
+                    break;
+                case 'camera':
+                    indicator = camStatus;
+                    break;
+                case 'microphone':
+                    indicator = micStatus;
+                    break;
+            }
+            
+            if (indicator) {
+                indicator.classList.remove('media-status-active', 'media-status-inactive', 'media-status-pending');
+                indicator.classList.add(`media-status-${status}`);
+                
+                addDebugLog(`Estado de ${type}: ${status}`);
+            }
+        }
+        
+        // Initialize Audio Test
+        function initializeAudioTest(stream) {
+            if (audioTestActive) return;
+            
+            audioTestActive = true;
+            
+            testVideo.srcObject = stream;
+            testAudioStream = stream;
+            
+            // Check video and audio tracks
+            let videoTracks = stream.getVideoTracks();
+            let audioTracks = stream.getAudioTracks();
+            
+            if (videoTracks.length > 0) {
+                updateMediaStatus('camera', 'active');
+                addDebugLog('Cámara detectada y activa', 'success');
+            } else {
+                updateMediaStatus('camera', 'inactive');
+                addDebugLog('No se detectó cámara', 'error');
+            }
+            
+            if (audioTracks.length > 0) {
+                updateMediaStatus('microphone', 'active');
+                addDebugLog('Micrófono detectado', 'success');
+            } else {
+                updateMediaStatus('microphone', 'inactive');
+                addDebugLog('No se detectó micrófono', 'error');
+            }
+            
+            // Set up audio context and analyzer
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                
+                // Connect the audio stream to the analyser
+                microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                
+                // Configure analyser
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                
+                // Set up interval to check audio levels
+                audioTestInterval = setInterval(() => {
+                    analyser.getByteFrequencyData(dataArray);
+                    
+                    // Calculate volume level
+                    let sum = 0;
+                    for (let i = 0; i < bufferLength; i++) {
+                        sum += dataArray[i];
+                    }
+                    
+                    const average = sum / bufferLength;
+                    const volumePercent = Math.min(100, Math.round((average / 128) * 100));
+                    
+                    // Update UI
+                    audioMeterFill.style.width = `${volumePercent}%`;
+                    audioLevel.textContent = `${volumePercent}%`;
+                    
+                    // Update indicator
+                    if (volumePercent > 5) {
+                        audioIndicator.classList.remove('audio-inactive');
+                        audioIndicator.classList.add('audio-active');
+                        audioStatusText.textContent = 'Audio detectado';
+                    } else {
+                        audioIndicator.classList.remove('audio-active');
+                        audioIndicator.classList.add('audio-inactive');
+                        audioStatusText.textContent = 'Sin audio detectado';
+                    }
+                }, 100);
+                
+                addDebugLog('Analizador de audio inicializado correctamente', 'success');
+            } catch (err) {
+                console.error('Error setting up audio analyzer:', err);
+                addDebugLog('Error al inicializar el analizador de audio: ' + err.message, 'error');
+                showError('No se pudo inicializar el analizador de audio.');
+            }
+        }
+        
+        // Stop Audio Test
+        function stopAudioTest() {
+            if (audioTestInterval) {
+                clearInterval(audioTestInterval);
+                audioTestInterval = null;
+            }
+            
+            if (audioContext) {
+                if (audioContext.state !== 'closed' && typeof audioContext.close === 'function') {
+                    audioContext.close();
+                }
+                audioContext = null;
+            }
+            
+            if (microphone) {
+                microphone.disconnect();
+                microphone = null;
+            }
+            
+            if (analyser) {
+                analyser = null;
+            }
+            
+            audioTestActive = false;
+            testAudio.pause();
+            
+            addDebugLog('Prueba de audio detenida');
+        }
+        
+        // Test audio playback
+        function playTestAudio() {
+            testAudio.play().catch(error => {
+                console.error('Error playing test audio:', error);
+                addDebugLog('Error al reproducir audio de prueba: ' + error.message, 'error');
+                showError('No se pudo reproducir el audio de prueba. Verifica que tienes permisos de reproducción.');
+            });
+            
+            setTimeout(() => {
+                testAudio.pause();
+            }, 2000);
+            
+            addDebugLog('Reproduciendo audio de prueba', 'info');
         }
         
         // Initialize PeerJS connection
@@ -544,15 +988,29 @@
             
             localUserName = userId;
             
-            // Initialize with a random server from PeerJS free servers
+            addDebugLog(`Inicializando conexión PeerJS para usuario: ${userId}`, 'info');
+            
+            // Initialize with STUN/TURN servers for NAT traversal
             peer = new Peer(userId, {
                 debug: 3,
                 config: {
                     'iceServers': [
                         { urls: 'stun:stun.l.google.com:19302' },
                         { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:stun2.l.google.com:19302' }
-                    ]
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun3.l.google.com:19302' },
+                        { urls: 'stun:stun4.l.google.com:19302' },
+                        { urls: 'stun:stun.ekiga.net' },
+                        { urls: 'stun:stun.ideasip.com' },
+                        { urls: 'stun:stun.schlund.de' },
+                        { urls: 'stun:stun.stunprotocol.org:3478' },
+                        { urls: 'stun:stun.voiparound.com' },
+                        { urls: 'stun:stun.voipbuster.com' },
+                        { urls: 'stun:stun.voipstunt.com' },
+                        { urls: 'stun:stun.voxgratia.org' }
+                    ],
+                    'sdpSemantics': 'unified-plan',
+                    'iceCandidatePoolSize': 10
                 }
             });
             
@@ -561,6 +1019,7 @@
                 myIdContainer.classList.remove('hidden');
                 step2.classList.remove('hidden');
                 updateConnectionStatus('disconnected');
+                addDebugLog(`ID PeerJS obtenido: ${id}`, 'success');
             });
             
             peer.on('error', (err) => {
@@ -589,41 +1048,171 @@
                 
                 showError(errorMsg);
                 updateConnectionStatus('disconnected');
+                addDebugLog(`Error PeerJS: ${err.type} - ${err.message}`, 'error');
             });
             
             peer.on('call', (call) => {
                 updateConnectionStatus('connecting');
+                addDebugLog(`Llamada entrante de: ${call.peer}`, 'info');
                 
                 if (!localStream) {
                     showError('No se pudo acceder a tu cámara y micrófono. Por favor, verifica los permisos.');
                     call.close();
+                    addDebugLog('Llamada rechazada: no hay acceso a medios locales', 'error');
                     return;
                 }
                 
+                // Store the remote peer ID for reconnection
+                remote_id = call.peer;
+                
+                // Answer the call with our media stream
                 call.answer(localStream);
                 setupCallEvents(call);
             });
             
             peer.on('connection', (conn) => {
+                addDebugLog(`Conexión de datos entrante de: ${conn.peer}`, 'info');
                 setupDataConnection(conn);
             });
         }
         
-        // Setup media stream
+        // Setup media stream with constraints and retry logic
         async function setupMediaStream() {
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
-                    video: true
-                });
+                // First try with both audio and video
+                addDebugLog('Solicitando acceso a cámara y micrófono', 'info');
                 
-                localVideo.srcObject = localStream;
+                const constraints = {
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    }
+                };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                addDebugLog('Acceso a cámara y micrófono concedido', 'success');
+                
+                // Initialize audio test with the stream
+                initializeAudioTest(localStream);
+                
+                // Show audio test panel
+                step1.classList.add('hidden');
+                audioTestPanel.classList.remove('hidden');
                 
                 return true;
             } catch (err) {
+                addDebugLog(`Error al acceder a medios: ${err.message}`, 'error');
                 console.error('Error accessing media devices:', err);
-                showError('No se pudo acceder a tu cámara y micrófono. Por favor, verifica los permisos.');
-                return false;
+                
+                try {
+                    // If failed, try with only audio
+                    addDebugLog('Intentando acceder solo al micrófono', 'warning');
+                    const audioOnlyConstraints = {
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        },
+                        video: false
+                    };
+                    
+                    localStream = await navigator.mediaDevices.getUserMedia(audioOnlyConstraints);
+                    addDebugLog('Acceso solo al micrófono concedido', 'success');
+                    showError('No se pudo acceder a tu cámara, pero el micrófono está disponible.');
+                    
+                    // Initialize audio test with the stream
+                    initializeAudioTest(localStream);
+                    
+                    // Show audio test panel
+                    step1.classList.add('hidden');
+                    audioTestPanel.classList.remove('hidden');
+                    
+                    return true;
+                } catch (audioErr) {
+                    addDebugLog(`Error al acceder al micrófono: ${audioErr.message}`, 'error');
+                    console.error('Error accessing audio only:', audioErr);
+                    showError('No se pudo acceder a tu cámara ni micrófono. Por favor, verifica los permisos en tu navegador y asegúrate de que los dispositivos estén conectados correctamente.');
+                    return false;
+                }
+            }
+        }
+        
+        // Monitor remote media tracks
+        function monitorMediaTracks() {
+            if (!currentCall || !remoteVideo.srcObject) return;
+            
+            const videoTracks = remoteVideo.srcObject.getVideoTracks();
+            const audioTracks = remoteVideo.srcObject.getAudioTracks();
+            
+            // Check remote video
+            if (videoTracks.length > 0) {
+                const videoTrack = videoTracks[0];
+                updateMediaStatus('remoteVideo', videoTrack.enabled ? 'active' : 'inactive');
+                
+                videoTrack.onended = () => {
+                    updateMediaStatus('remoteVideo', 'inactive');
+                    addDebugLog('Pista de video remoto finalizada', 'warning');
+                };
+                
+                videoTrack.onmute = () => {
+                    updateMediaStatus('remoteVideo', 'inactive');
+                    addDebugLog('Pista de video remoto silenciada', 'warning');
+                };
+                
+                videoTrack.onunmute = () => {
+                    updateMediaStatus('remoteVideo', 'active');
+                    addDebugLog('Pista de video remoto reactivada', 'success');
+                };
+            } else {
+                updateMediaStatus('remoteVideo', 'inactive');
+                addDebugLog('No hay pistas de video remotas disponibles', 'warning');
+            }
+            
+            // Check remote audio
+            if (audioTracks.length > 0) {
+                const audioTrack = audioTracks[0];
+                updateMediaStatus('remoteAudio', audioTrack.enabled ? 'active' : 'inactive');
+                
+                audioTrack.onended = () => {
+                    updateMediaStatus('remoteAudio', 'inactive');
+                    addDebugLog('Pista de audio remoto finalizada', 'warning');
+                };
+                
+                audioTrack.onmute = () => {
+                    updateMediaStatus('remoteAudio', 'inactive');
+                    addDebugLog('Pista de audio remoto silenciada', 'warning');
+                };
+                
+                audioTrack.onunmute = () => {
+                    updateMediaStatus('remoteAudio', 'active');
+                    addDebugLog('Pista de audio remoto reactivada', 'success');
+                };
+            } else {
+                updateMediaStatus('remoteAudio', 'inactive');
+                addDebugLog('No hay pistas de audio remotas disponibles', 'warning');
+            }
+            
+            // Check local streams too
+            const localVideoTracks = localStream.getVideoTracks();
+            const localAudioTracks = localStream.getAudioTracks();
+            
+            if (localVideoTracks.length > 0) {
+                updateMediaStatus('localVideo', videoEnabled ? 'active' : 'inactive');
+            } else {
+                updateMediaStatus('localVideo', 'inactive');
+            }
+            
+            if (localAudioTracks.length > 0) {
+                updateMediaStatus('localAudio', audioEnabled ? 'active' : 'inactive');
+            } else {
+                updateMediaStatus('localAudio', 'inactive');
             }
         }
         
@@ -631,22 +1220,51 @@
         function setupCallEvents(call) {
             currentCall = call;
             
+            // Set media status indicators to pending
+            updateMediaStatus('remoteAudio', 'pending');
+            updateMediaStatus('remoteVideo', 'pending');
+            
+            addDebugLog(`Configurando eventos para llamada con: ${call.peer}`, 'info');
+            
             call.on('stream', (stream) => {
+                addDebugLog('Stream remoto recibido', 'success');
                 remoteVideo.srcObject = stream;
+                
+                // Ensure local video is also updated in UI
+                localVideo.srcObject = localStream;
+                
+                // Monitor the media tracks for changes
+                monitorMediaTracks();
+                
+                // Setup periodic checking of remote media
+                setInterval(monitorMediaTracks, 5000);
+                
                 step3.classList.remove('hidden');
                 step1.classList.add('hidden');
                 step2.classList.add('hidden');
+                myIdContainer.classList.add('hidden');
+                audioTestPanel.classList.add('hidden');
                 updateConnectionStatus('connected');
             });
             
             call.on('close', () => {
+                addDebugLog('Llamada cerrada', 'warning');
                 endCall();
             });
             
             call.on('error', (err) => {
                 console.error('Call error:', err);
+                addDebugLog(`Error en la llamada: ${err.message}`, 'error');
                 showError('Error en la llamada: ' + err.message);
-                endCall();
+                
+                // Try to recover automatically if possible
+                if (connectionRetries < maxRetries) {
+                    connectionRetries++;
+                    addDebugLog(`Intento de reconexión automática ${connectionRetries}/${maxRetries}`, 'warning');
+                    reconnectCall();
+                } else {
+                    endCall();
+                }
             });
         }
         
@@ -654,31 +1272,45 @@
         function setupDataConnection(conn) {
             dataConnection = conn;
             
+            addDebugLog(`Configurando conexión de datos con: ${conn.peer}`, 'info');
+            
             conn.on('open', () => {
-                console.log('Data connection established');
+                addDebugLog('Conexión de datos establecida', 'success');
             });
             
             conn.on('data', (data) => {
                 if (data.type === 'chat') {
                     addChatMessage(data.username, data.message, false);
+                    addDebugLog(`Mensaje recibido de ${data.username}`, 'info');
                 } else if (data.type === 'reaction') {
                     showReaction(data.emoji, true);
+                    addDebugLog(`Reacción recibida: ${data.emoji}`, 'info');
                 }
             });
             
             conn.on('close', () => {
-                console.log('Data connection closed');
+                addDebugLog('Conexión de datos cerrada', 'warning');
                 dataConnection = null;
             });
             
             conn.on('error', (err) => {
                 console.error('Data connection error:', err);
+                addDebugLog(`Error en la conexión de datos: ${err.message}`, 'error');
                 dataConnection = null;
             });
         }
         
-        // End current call and reset UI
-        function endCall() {
+        // Reconnect call function
+        function reconnectCall() {
+            if (!remote_id || !localStream) {
+                addDebugLog('No se puede reconectar: falta ID remoto o stream local', 'error');
+                return;
+            }
+            
+            addDebugLog(`Intentando reconectar con: ${remote_id}`, 'info');
+            updateConnectionStatus('connecting');
+            
+            // Close existing connections
             if (currentCall) {
                 currentCall.close();
                 currentCall = null;
@@ -689,14 +1321,54 @@
                 dataConnection = null;
             }
             
-            remoteVideo.srcObject = null;
+            // Setup new data connection
+            const conn = peer.connect(remote_id);
+            setupDataConnection(conn);
+            
+            // Setup new media connection
+            const call = peer.call(remote_id, localStream);
+            setupCallEvents(call);
+        }
+        
+        // End current call and reset UI
+        function endCall() {
+            addDebugLog('Finalizando llamada', 'info');
+            
+            if (currentCall) {
+                currentCall.close();
+                currentCall = null;
+            }
+            
+            if (dataConnection) {
+                dataConnection.close();
+                dataConnection = null;
+            }
+            
+            // Reset connection retry counter
+            connectionRetries = 0;
+            
+            // Clear remote stream
+            if (remoteVideo.srcObject) {
+                const tracks = remoteVideo.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                remoteVideo.srcObject = null;
+            }
+            
+            // Reset UI
             chatMessages.innerHTML = '';
             chatPanel.classList.remove('open');
             
             step3.classList.add('hidden');
             step1.classList.remove('hidden');
             step2.classList.remove('hidden');
+            myIdContainer.classList.remove('hidden');
             updateConnectionStatus('disconnected');
+            
+            // Reset media status indicators
+            updateMediaStatus('remoteAudio', 'pending');
+            updateMediaStatus('remoteVideo', 'pending');
+            updateMediaStatus('localAudio', 'pending');
+            updateMediaStatus('localVideo', 'pending');
         }
         
         // Toggle audio
@@ -707,16 +1379,20 @@
                     track.enabled = audioEnabled;
                 });
                 
+                updateMediaStatus('localAudio', audioEnabled ? 'active' : 'inactive');
+                
                 if (audioEnabled) {
                     toggleAudioBtn.innerHTML = `
                         <i class="fas fa-microphone"></i>
                         <span class="ml-2">Silenciar</span>
                     `;
+                    addDebugLog('Micrófono activado', 'success');
                 } else {
                     toggleAudioBtn.innerHTML = `
                         <i class="fas fa-microphone-slash"></i>
                         <span class="ml-2">Activar micrófono</span>
                     `;
+                    addDebugLog('Micrófono silenciado', 'info');
                 }
             }
         }
@@ -729,16 +1405,20 @@
                     track.enabled = videoEnabled;
                 });
                 
+                updateMediaStatus('localVideo', videoEnabled ? 'active' : 'inactive');
+                
                 if (videoEnabled) {
                     toggleVideoBtn.innerHTML = `
                         <i class="fas fa-video"></i>
                         <span class="ml-2">Apagar cámara</span>
                     `;
+                    addDebugLog('Cámara activada', 'success');
                 } else {
                     toggleVideoBtn.innerHTML = `
                         <i class="fas fa-video-slash"></i>
                         <span class="ml-2">Activar cámara</span>
                     `;
+                    addDebugLog('Cámara apagada', 'info');
                 }
             }
         }
@@ -746,6 +1426,12 @@
         // Toggle chat panel
         function toggleChat() {
             chatPanel.classList.toggle('open');
+        }
+        
+        // Toggle debug panel
+        function toggleDebug() {
+            debugContent.classList.toggle('open');
+            toggleDebugBtn.textContent = debugContent.classList.contains('open') ? 'Ocultar' : 'Mostrar';
         }
         
         // Send chat message
@@ -761,6 +1447,7 @@
                 
                 addChatMessage(localUserName, message, true);
                 chatInput.value = '';
+                addDebugLog(`Mensaje enviado: ${message}`, 'info');
             }
         }
         
@@ -795,6 +1482,8 @@
                     type: 'reaction',
                     emoji: emoji
                 });
+                
+                addDebugLog(`Reacción enviada: ${emoji}`, 'info');
             }
             
             showReaction(emoji, false);
@@ -830,14 +1519,19 @@
             }, 2000);
         }
         
+        // Continue after audio test
+        function continueAfterTest() {
+            stopAudioTest();
+            initializePeer(username.value.trim());
+            audioTestPanel.classList.add('hidden');
+        }
+        
         // Event Listeners
         generateBtn.addEventListener('click', async () => {
             if (!checkWebRTCSupport()) return;
             
-            const hasMedia = await setupMediaStream();
-            if (hasMedia) {
-                initializePeer(username.value.trim());
-            }
+            addDebugLog('Iniciando configuración de medios', 'info');
+            await setupMediaStream();
         });
         
         connectBtn.addEventListener('click', () => {
@@ -853,20 +1547,35 @@
                 return;
             }
             
+            // Store remote ID for reconnection
+            remote_id = remoteId;
+            
             updateConnectionStatus('connecting');
+            addDebugLog(`Iniciando conexión con: ${remoteId}`, 'info');
             
             // Setup data connection
             const conn = peer.connect(remoteId);
             setupDataConnection(conn);
             
-            // Setup media connection
+            // Setup media connection with explicit constraints to ensure both audio and video are sent
             const call = peer.call(remoteId, localStream);
             setupCallEvents(call);
         });
         
+        continueBtn.addEventListener('click', continueAfterTest);
+        
+        reconnectBtn.addEventListener('click', () => {
+            addDebugLog('Reconexión manual iniciada', 'info');
+            connectionRetries = 0;  // Reset retry counter for manual reconnect
+            reconnectCall();
+        });
+        
+        testAudioBtn.addEventListener('click', playTestAudio);
+        
         hangupBtn.addEventListener('click', endCall);
         toggleAudioBtn.addEventListener('click', toggleAudio);
         toggleVideoBtn.addEventListener('click', toggleVideo);
+        toggleDebugBtn.addEventListener('click', toggleDebug);
         
         // Chat and Reaction Event Listeners
         toggleChatBtn.addEventListener('click', toggleChat);
@@ -893,14 +1602,47 @@
                     setTimeout(() => {
                         copyBtn.textContent = 'Copiar';
                     }, 2000);
+                    addDebugLog('ID copiado al portapapeles', 'success');
                 })
                 .catch(err => {
                     console.error('No se pudo copiar al portapapeles:', err);
+                    addDebugLog(`Error al copiar al portapapeles: ${err.message}`, 'error');
                 });
         });
         
+        // Remote video specific event listeners
+        remoteVideo.addEventListener('loadedmetadata', () => {
+            addDebugLog('Video remoto cargado', 'success');
+        });
+        
+        remoteVideo.addEventListener('error', (e) => {
+            addDebugLog(`Error en video remoto: ${e.target.error.message || 'Error desconocido'}`, 'error');
+        });
+        
         // Check WebRTC support on page load
-        window.addEventListener('load', checkWebRTCSupport);
+        window.addEventListener('load', () => {
+            checkWebRTCSupport();
+            addDebugLog('Aplicación de WebRTC cargada', 'info');
+        });
+        
+        // Clean up on unload
+        window.addEventListener('beforeunload', () => {
+            stopAudioTest();
+            
+            if (currentCall) {
+                currentCall.close();
+            }
+            
+            if (dataConnection) {
+                dataConnection.close();
+            }
+            
+            if (peer) {
+                peer.destroy();
+            }
+            
+            addDebugLog('Limpieza antes de cerrar', 'info');
+        });
     </script>
 </body>
 </html>
